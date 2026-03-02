@@ -1,0 +1,48 @@
+data:
+  eval_data: '/root/moshi-data-prep/finetune_data/eval.jsonl'
+  shuffle: true
+  train_data: '/root/moshi-data-prep/finetune_data/train.jsonl'
+
+# model
+moshi_paths:
+  hf_repo_id: "kyutai/moshiko-pytorch-bf16"
+
+full_finetuning: false
+lora:
+  enable: true
+  rank: 128
+  scaling: 2.0
+  ft_embed: true
+
+first_codebook_weight_multiplier: 100.0
+text_padding_weight: 0.5
+
+# optim
+duration_sec: 128.0
+batch_size: 32          # ↑ H100 80GB supporte (vs 24 avant, ~67GB peak)
+max_steps: 15000        # ~10 epochs sur 2000h / ~13 epochs sur 1500h
+gradient_checkpointing: true
+num_microbatches: 1
+
+optim:
+  lr: 2e-5              # ↓ plus conservateur (plus de data = moins agressif)
+  weight_decay: 0.1
+  pct_start: 0.02       # warmup 300 steps (au lieu de 100)
+
+# other
+seed: 0
+log_freq: 10            # moins verbose (plus de steps)
+eval_freq: 500          # surveille val loss toutes les 500 steps
+do_eval: true           # ← CRUCIAL pour détecter l'overfit cette fois
+do_ckpt: true
+ckpt_freq: 1000
+num_ckpt_keep: 5        # garde plus de ckpts pour choisir le meilleur
+save_adapters: true
+run_dir: "/root/moshi-finetune/runs/french_moshi_v2"
+overwrite_run_dir: false  # sécurité
+
+# tracking
+aim:
+  experiment: "moshi-french-finetune-v2"
+  repo: "/root/moshi-finetune/aim_data"
+  run_name: "french_moshi_v2"

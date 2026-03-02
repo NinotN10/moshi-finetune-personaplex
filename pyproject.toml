@@ -5,6 +5,8 @@ description = "finetune moshi models"
 dynamic = ["version"]
 readme = "README.md"
 dependencies = [
+  "setuptools",
+  "wheel",
   "fire",
   "simple-parsing",
   "pyyaml",
@@ -17,7 +19,7 @@ dependencies = [
   # We could also use [tool.uv.sources] to point to the git repo, but this maintains
   # compatibility with `pip install -e .`
   "moshi @ git+https://github.com/kyutai-labs/moshi.git#subdirectory=moshi",
-  "sphn==0.1.12",
+  "sphn==0.2.0",
   "auditok==0.2",
   "whisper_timestamped",
   "huggingface_hub",
@@ -25,6 +27,8 @@ dependencies = [
   "submitit",
   "llvmlite>=0.44",
   "numba>=0.61",
+  "aim",
+  "gradio>=6.8.0",
 ]
 
 [project.optional-dependencies]
@@ -76,8 +80,8 @@ follow_imports = "normal"
 
 [tool.ruff]
 lint.select = ["E", "F", "W", "C90", "I", "C4", "PT", "RSE", "TID", "TCH", "FLY", "NPY", "RUF", "T10"]
-line-length = 88
 lint.ignore = ["E501"]
+line-length = 88
 target-version = "py38"
 exclude = [".git","__pycache__",".vscode",".mypy_cache"]
 

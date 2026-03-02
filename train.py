@@ -111,6 +111,7 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
         is_master=get_rank() == 0,
         wandb_args=args.wandb,
         config=dataclasses.asdict(args),
+        aim_args=args.aim,
     )
     exit_stack.enter_context(logged_closing(metrics_logger, "metrics_logger"))
 
@@ -120,6 +121,7 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
         is_master=get_rank() == 0,
         wandb_args=args.wandb,
         config=dataclasses.asdict(args),
+        aim_args=args.aim,
     )
     exit_stack.enter_context(logged_closing(eval_logger, "eval_logger"))
 
@@ -133,14 +135,28 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
         config_path=args.moshi_paths.config_path,
     )
 
-    lm_config = (
-        loaders._lm_kwargs
-        if checkpoint_info.raw_config is None
-        else checkpoint_info.raw_config
-    )
+    lm_config = dict(loaders._lm_kwargs)  # start from defaults
+    if checkpoint_info.raw_config is not None:
+        # Only merge architecture keys; metadata keys like model_type, version,
+        # moshi_name etc. are not model params and would cause errors if passed
+        # to the model constructor (they are already popped by from_hf_repo).
+        _metadata_keys = {
+            "model_type", "version", "moshi_name", "mimi_name",
+            "mimi_config_name", "tokenizer_name", "lora_name",
+            "lm_gen_config", "tts_config", "stt_config", "model_id",
+        }
+        arch_config = {
+            k: v for k, v in checkpoint_info.raw_config.items()
+            if k not in _metadata_keys
+        }
+        lm_config.update(arch_config)
     lm_config["lora"] = args.lora.enable
     lm_config["lora_rank"] = args.lora.rank
     lm_config["lora_scaling"] = args.lora.scaling
+
+    # Patch checkpoint_info.lm_config so get_mimi() has access to dep_q, n_q, etc.
+    # Personaplex config.json is minimal and lacks these keys.
+    checkpoint_info.lm_config = lm_config
 
     mimi = checkpoint_info.get_mimi(device="cuda")
     mimi.eval()

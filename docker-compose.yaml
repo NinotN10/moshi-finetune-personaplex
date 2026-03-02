@@ -1,0 +1,10 @@
+services:
+  aim-server:
+    image: aimstack/aim:latest
+    command: up --host 0.0.0.0 --port 43800 --repo /aim
+    volumes:
+      - ./aim_data:/aim
+      - ./runs:/runs:ro  
+    ports:
+      - "43800:43800"
+    restart: unless-stopped

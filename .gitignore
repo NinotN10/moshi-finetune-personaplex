@@ -1,3 +1,14 @@
+# Poids du modèle et logs d'entraînement
+runs/
+*.safetensors
+*.ckpt
+
+# Fichiers de sécurité et certificats
+*.pem
+.gradio/
+
+
+aim_data/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

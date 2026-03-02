@@ -1,30 +1,32 @@
 # data
 data:
-  eval_data: '' # Optional Fill
+  eval_data: ''
   shuffle: true
-  train_data: '' # Fill
+  train_data: '/root/moshi-data-prep/finetune_data/dataset.jsonl'
 
 # model
-moshi_paths: 
+moshi_paths:
   hf_repo_id: "kyutai/moshiko-pytorch-bf16"
 
-full_finetuning: false # Activate lora.enable if partial finetuning
+full_finetuning: false
 lora:
-  enable: true # Set to False if full_finetuning is True
+  enable: true
   rank: 128
-  scaling: 2.
-  ft_embed: false # Optional, set to True if you want to finetune the embedding layer
+  scaling: 2.0
+  ft_embed: true   # ← très important pour le français
 
-first_codebook_weight_multiplier: 100.
-text_padding_weight: .5
+first_codebook_weight_multiplier: 100.0
+text_padding_weight: 0.5
 
 # optim
-duration_sec: 100
-batch_size: 16
+duration_sec: 128.0
+batch_size: 24          # ← changé pour éviter le bug
 max_steps: 2000
 gradient_checkpointing: true
+num_microbatches: 1
+
 optim:
-  lr: 2e-6
+  lr: 3e-5
   weight_decay: 0.1
   pct_start: 0.05
 
@@ -34,16 +36,14 @@ log_freq: 1
 eval_freq: 100
 do_eval: false
 do_ckpt: true
-ckpt_freq: 100
+ckpt_freq: 200
+num_ckpt_keep: 3
+save_adapters: true
+run_dir: "/root/moshi-finetune/runs/french_moshi"   # ← nom plus clair
+overwrite_run_dir: true
 
-
-save_adapters: true # Must be False if full_finetuning is True
-
-run_dir: ""  # Fill
-
-# This part is optional and can be kept commented out
-# wandb:
-#   project: "" # your wandb project name
-#   run_name: "" # your wandb run name
-#   key: "" # your wandb api key
-#   offline: False
+# tracking (tu peux garder)
+aim:
+  experiment: "moshi-french-finetune"
+  repo: "/root/moshi-finetune/aim_data"
+  run_name: "french_moshi"

@@ -7,7 +7,7 @@ from typing import Any
 
 from torch.utils.tensorboard import SummaryWriter
 
-from finetune.args import TrainArgs, WandbArgs
+from finetune.args import AimArgs, TrainArgs, WandbArgs
 from finetune.utils import TrainState
 
 logger = logging.getLogger("metrics_logger")
@@ -120,6 +120,7 @@ class MetricsLogger:
         is_master: bool,
         wandb_args: WandbArgs,
         config: dict[str, Any] | None = None,
+        aim_args: AimArgs | None = None,
     ):
         self.dst_dir = dst_dir
         self.tag = tag
@@ -127,6 +128,7 @@ class MetricsLogger:
         self.jsonl_path = dst_dir / f"metrics.{tag}.jsonl"
         self.tb_dir = dst_dir / "tb"
         self.summary_writer: SummaryWriter | None = None
+        self.aim_run = None
 
         if not self.is_master:
             return
@@ -160,6 +162,24 @@ class MetricsLogger:
 
             self.wandb_log = wandb.log
 
+        # Aim integration
+        self.is_aim = aim_args is not None and aim_args.experiment is not None
+        if self.is_aim:
+            from aim import Run as AimRun
+
+            aim_kwargs = {
+                "experiment": aim_args.experiment,
+            }
+            if aim_args.repo:
+                aim_kwargs["repo"] = aim_args.repo
+
+            logger.info("initializing aim run for experiment '%s'", aim_args.experiment)
+            self.aim_run = AimRun(**aim_kwargs)
+            self.aim_run["name"] = aim_args.run_name or dst_dir.name
+            self.aim_run["tag"] = tag
+            if config:
+                self.aim_run["hparams"] = config
+
     def log(self, metrics: dict[str, float | int], step: int):
         if not self.is_master:
             return
@@ -185,6 +205,14 @@ class MetricsLogger:
                 step=step,
             )
 
+        if self.is_aim and self.aim_run is not None:
+            for key, value in metrics.items():
+                if key in metrics_to_ignore:
+                    continue
+                self.aim_run.track(
+                    value, name=f"{self.tag}.{key}", step=step
+                )
+
         metrics_: dict[str, Any] = dict(metrics)  # shallow copy
         if "step" in metrics_:
             assert step == metrics_["step"]
@@ -207,6 +235,10 @@ class MetricsLogger:
 
             # to be sure we are not hanging while finishing
             wandb.finish()
+
+        if self.aim_run is not None:
+            self.aim_run.close()
+            self.aim_run = None
 
     def __del__(self):
         if self.summary_writer is not None:

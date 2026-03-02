@@ -46,6 +46,23 @@ class WandbArgs(Serializable):
             if len(self.project) == 0:
                 raise ValueError("`wandb.project` must not be an empty string.")
 
+@dataclass
+class AimArgs(Serializable):
+    experiment: str | None = None  # Fill this argument to use Aim.
+    repo: str | None = None  # Aim repo path or remote URL. Defaults to local .aim
+    run_name: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.experiment is not None:
+            try:
+                import aim  # noqa: F401
+            except ImportError:
+                raise ImportError(
+                    "`aim` not installed. Either make sure `aim` is installed or set `aim:experiment` to None."
+                )
+
+            if len(self.experiment) == 0:
+                raise ValueError("`aim.experiment` must not be an empty string.")
 
 @dataclass
 class ModelPaths(Serializable):
@@ -103,6 +120,7 @@ class TrainArgs(Serializable):
 
     # logging
     wandb: WandbArgs = field(default_factory=WandbArgs)
+    aim: AimArgs = field(default_factory=AimArgs)
 
     # LoRA
     lora: LoraArgs | None = field(default_factory=LoraArgs)
